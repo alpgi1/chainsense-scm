@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: chainsense
+      POSTGRES_USER: chainsense
+      POSTGRES_PASSWORD: chainsense
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@chainsense.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5051:80"
+
+volumes:
+  pgdata:
