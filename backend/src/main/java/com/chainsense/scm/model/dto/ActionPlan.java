@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
-import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ActionPlan(
@@ -21,9 +20,9 @@ public record ActionPlan(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ActionItem(
             @JsonProperty("actionType") String actionType,
-            @JsonProperty("affectedProductId") UUID affectedProductId,
+            @JsonProperty("affectedProductId") String affectedProductId,
             @JsonProperty("productName") String productName,
-            @JsonProperty("recommendedSupplierId") UUID recommendedSupplierId,
+            @JsonProperty("recommendedSupplierId") String recommendedSupplierId,
             @JsonProperty("supplierName") String supplierName,
             @JsonProperty("rationale") String rationale,
             @JsonProperty("currentUnitCost") double currentUnitCost,
