@@ -1,11 +1,17 @@
 package com.chainsense.scm.service.agent;
 
 import com.chainsense.scm.exception.AiProcessingException;
+import com.chainsense.scm.exception.ResourceNotFoundException;
 import com.chainsense.scm.model.dto.ActionPlan;
 import com.chainsense.scm.model.dto.DisruptionResponse;
 import com.chainsense.scm.model.dto.RiskReport;
+import com.chainsense.scm.model.entity.DecisionAction;
 import com.chainsense.scm.model.entity.DisruptionLog;
+import com.chainsense.scm.model.enums.ActionType;
+import com.chainsense.scm.model.enums.Priority;
 import com.chainsense.scm.model.enums.RetrievalMode;
+import com.chainsense.scm.model.enums.Status;
+import com.chainsense.scm.repository.DecisionActionRepository;
 import com.chainsense.scm.repository.DisruptionLogRepository;
 import com.chainsense.scm.service.retrieval.ContextRetrievalStrategy;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +32,7 @@ public class AgentOrchestrator {
     private final RiskAnalystAgent riskAnalyst;
     private final StrategistAgent strategist;
     private final DisruptionLogRepository disruptionLogRepository;
+    private final DecisionActionRepository decisionActionRepository;
     private final ObjectMapper objectMapper;
 
     public AgentOrchestrator(
@@ -33,12 +40,14 @@ public class AgentOrchestrator {
             RiskAnalystAgent riskAnalyst,
             StrategistAgent strategist,
             DisruptionLogRepository disruptionLogRepository,
+            DecisionActionRepository decisionActionRepository,
             ObjectMapper objectMapper) {
         this.strategies = strategyList.stream()
                 .collect(Collectors.toMap(ContextRetrievalStrategy::getMode, s -> s));
         this.riskAnalyst = riskAnalyst;
         this.strategist = strategist;
         this.disruptionLogRepository = disruptionLogRepository;
+        this.decisionActionRepository = decisionActionRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -52,16 +61,13 @@ public class AgentOrchestrator {
 
         log.info("Processing disruption | mode={} | prompt=\"{}\"", mode, chaosPrompt);
 
-        // Step 1: Retrieve full supply chain context
         String context = strategy.retrieveContext(chaosPrompt);
         log.debug("Context retrieved: {} chars", context.length());
 
-        // Step 2: Agent 1 — Risk Analysis
         RiskReport riskReport = riskAnalyst.analyze(chaosPrompt, context);
         log.info("RiskReport generated | overallRiskScore={} | affectedProducts={}",
                 riskReport.overallRiskScore(), riskReport.affectedProducts().size());
 
-        // Step 3: Retrieve filtered alternative supplier context
         List<UUID> affectedProductIds = riskReport.affectedProducts().stream()
                 .map(RiskReport.AffectedProduct::productId)
                 .collect(Collectors.toList());
@@ -69,14 +75,26 @@ public class AgentOrchestrator {
         String altContext = strategy.retrieveAlternativeContext(affectedProductIds);
         log.debug("Alternative context retrieved: {} chars", altContext.length());
 
-        // Step 4: Agent 2 — Strategy
         ActionPlan actionPlan = strategist.strategize(riskReport, altContext);
         log.info("ActionPlan generated | actions={}", actionPlan.actions().size());
 
-        // Step 5: Persist to database
         DisruptionLog saved = persist(chaosPrompt, riskReport, actionPlan, mode);
 
         return DisruptionResponse.from(saved, riskReport, actionPlan);
+    }
+
+    @Transactional
+    public void updateActionStatus(UUID disruptionId, UUID actionId, Status newStatus) {
+        DisruptionLog disruption = disruptionLogRepository.findById(disruptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Disruption not found: " + disruptionId));
+        DecisionAction action = decisionActionRepository.findById(actionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Action not found: " + actionId));
+        if (!action.getDisruption().getId().equals(disruption.getId())) {
+            throw new ResourceNotFoundException("Action does not belong to this disruption");
+        }
+        action.setStatus(newStatus);
+        decisionActionRepository.save(action);
+        log.info("Action {} status updated to {} for disruption {}", actionId, newStatus, disruptionId);
     }
 
     private DisruptionLog persist(String chaosPrompt, RiskReport riskReport, ActionPlan actionPlan, RetrievalMode mode) {
@@ -84,15 +102,39 @@ public class AgentOrchestrator {
             String riskJson = objectMapper.writeValueAsString(riskReport);
             String planJson = objectMapper.writeValueAsString(actionPlan);
 
-            DisruptionLog log = DisruptionLog.builder()
+            DisruptionLog saved = disruptionLogRepository.save(DisruptionLog.builder()
                     .chaosPrompt(chaosPrompt)
                     .riskAnalysis(riskJson)
                     .actionPlan(planJson)
                     .overallRiskScore(riskReport.overallRiskScore())
                     .retrievalMode(mode)
-                    .build();
+                    .build());
 
-            return disruptionLogRepository.save(log);
+            if (actionPlan.actions() != null) {
+                for (ActionPlan.ActionItem item : actionPlan.actions()) {
+                    ActionType actionType = ActionType.HOLD;
+                    try { actionType = ActionType.valueOf(item.actionType()); } catch (Exception ignored) {}
+
+                    Priority priority = Priority.MEDIUM;
+                    try { priority = Priority.valueOf(item.priority()); } catch (Exception ignored) {}
+
+                    String description = (item.rationale() != null && !item.rationale().isBlank())
+                            ? item.rationale()
+                            : item.productName() + " - " + item.actionType();
+
+                    decisionActionRepository.save(DecisionAction.builder()
+                            .disruption(saved)
+                            .actionType(actionType)
+                            .description(description)
+                            .priority(priority)
+                            .status(Status.PROPOSED)
+                            .build());
+                }
+            }
+
+            return saved;
+        } catch (AiProcessingException e) {
+            throw e;
         } catch (Exception e) {
             throw new AiProcessingException("Failed to persist disruption log", e);
         }

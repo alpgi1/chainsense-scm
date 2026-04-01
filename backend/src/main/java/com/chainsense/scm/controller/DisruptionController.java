@@ -1,10 +1,10 @@
 package com.chainsense.scm.controller;
 
+import com.chainsense.scm.exception.AiProcessingException;
 import com.chainsense.scm.exception.ResourceNotFoundException;
-import com.chainsense.scm.model.dto.ApiResponse;
-import com.chainsense.scm.model.dto.ChaosPromptRequest;
-import com.chainsense.scm.model.dto.DisruptionResponse;
+import com.chainsense.scm.model.dto.*;
 import com.chainsense.scm.model.entity.DisruptionLog;
+import com.chainsense.scm.model.enums.RetrievalMode;
 import com.chainsense.scm.repository.DisruptionLogRepository;
 import com.chainsense.scm.service.agent.AgentOrchestrator;
 import jakarta.validation.Valid;
@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @RestController
@@ -35,6 +37,33 @@ public class DisruptionController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    @PostMapping("/compare")
+    public ResponseEntity<ApiResponse<CompareResponse>> compare(
+            @Valid @RequestBody CompareRequest request) {
+        log.info("POST /api/v1/disruptions/compare | mode={}", request.retrievalMode());
+        RetrievalMode mode = request.retrievalMode() != null ? request.retrievalMode() : RetrievalMode.CONTEXT;
+
+        CompletableFuture<DisruptionResponse> futureA = CompletableFuture.supplyAsync(
+                () -> orchestrator.processDisruption(request.promptA(), mode)
+        );
+        CompletableFuture<DisruptionResponse> futureB = CompletableFuture.supplyAsync(
+                () -> orchestrator.processDisruption(request.promptB(), mode)
+        );
+
+        try {
+            CompareResponse result = new CompareResponse(futureA.get(), futureB.get());
+            return ResponseEntity.ok(ApiResponse.ok(result));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new AiProcessingException("Comparison interrupted", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof AiProcessingException ape) throw ape;
+            if (cause instanceof RuntimeException re) throw re;
+            throw new AiProcessingException("Comparison failed", e);
+        }
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<DisruptionResponse>>> listAll(
             @RequestParam(defaultValue = "0") int page,
@@ -48,8 +77,18 @@ public class DisruptionController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DisruptionResponse>> getById(@PathVariable UUID id) {
-        DisruptionLog log = disruptionLogRepository.findById(id)
+        DisruptionLog disruptionLog = disruptionLogRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Disruption not found: " + id));
-        return ResponseEntity.ok(ApiResponse.ok(DisruptionResponse.from(log)));
+        return ResponseEntity.ok(ApiResponse.ok(DisruptionResponse.from(disruptionLog)));
+    }
+
+    @PatchMapping("/{id}/actions/{actionId}")
+    public ResponseEntity<ApiResponse<Void>> updateActionStatus(
+            @PathVariable UUID id,
+            @PathVariable UUID actionId,
+            @Valid @RequestBody ActionStatusRequest request) {
+        log.info("PATCH /api/v1/disruptions/{}/actions/{} | status={}", id, actionId, request.status());
+        orchestrator.updateActionStatus(id, actionId, request.status());
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
