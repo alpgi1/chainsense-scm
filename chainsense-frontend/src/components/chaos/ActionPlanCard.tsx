@@ -38,6 +38,13 @@ const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'var(--risk-low)',
 };
 
+function formatCurrency(value: number): string {
+  if (value === 0) return '€0';
+  if (Math.abs(value) >= 1_000_000) return `€${(value / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(value) >= 1_000) return `€${(value / 1_000).toFixed(1)}K`;
+  return `€${value.toFixed(0)}`;
+}
+
 function ActionItemRow({ action }: { action: ActionItem }) {
   const [open, setOpen] = useState(false);
 
@@ -321,13 +328,13 @@ export function ActionPlanCard({
                   {
                     icon: <DollarSign size={14} color="var(--risk-high)" />,
                     label: 'Additional cost/day',
-                    value: `€${(plan.costSummary.totalAdditionalCostPerDay / 1000).toFixed(0)}K`,
+                    value: formatCurrency(plan.costSummary.totalAdditionalCostPerDay),
                     danger: true,
                   },
                   {
                     icon: <TrendingUp size={14} color="var(--risk-critical)" />,
                     label: 'Total impact est.',
-                    value: `€${(plan.costSummary.estimatedTotalImpact / 1000000).toFixed(2)}M`,
+                    value: formatCurrency(plan.costSummary.estimatedTotalImpact),
                     danger: true,
                   },
                   {
