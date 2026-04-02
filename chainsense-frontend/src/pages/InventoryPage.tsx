@@ -192,6 +192,7 @@ export function InventoryPage() {
 
         {/* Table */}
         <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
           <table className="cs-table">
             <thead>
               <tr>
@@ -350,6 +351,7 @@ export function InventoryPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right' }}>

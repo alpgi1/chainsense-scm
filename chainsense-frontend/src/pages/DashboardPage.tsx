@@ -8,6 +8,7 @@ import {
   Activity,
   DollarSign,
   Truck,
+  RefreshCw,
 } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { AlertBanner } from '../components/dashboard/AlertBanner';
@@ -18,7 +19,7 @@ import { SkeletonCard } from '../components/shared/SkeletonCard';
 import { useDashboard } from '../hooks/useDashboard';
 
 export function DashboardPage() {
-  const { stats, criticalProducts, recentDisruptions, loading, refresh } = useDashboard();
+  const { stats, criticalProducts, recentDisruptions, loading, error, refresh } = useDashboard();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -31,11 +32,42 @@ export function DashboardPage() {
       <AlertBanner criticalCount={stats.criticalStockItems} />
 
       <div style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
+        {/* Error state */}
+        {error && !loading && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              padding: '16px 20px',
+              border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 12,
+              background: 'rgba(239,68,68,0.05)',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <AlertTriangle size={16} color="var(--risk-critical)" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>
+              Failed to load dashboard data. Showing cached data.
+            </span>
+            <button
+              className="btn-secondary"
+              onClick={refresh}
+              style={{ padding: '6px 12px', fontSize: 12, gap: 5 }}
+            >
+              <RefreshCw size={12} />
+              Retry
+            </button>
+          </motion.div>
+        )}
+
         {/* KPI Grid */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
             gap: 14,
             marginBottom: 24,
           }}

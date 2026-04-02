@@ -329,3 +329,20 @@ body {
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .sidebar { width: 64px !important; min-width: 64px !important; }
+  .sidebar-label { display: none !important; }
+  .sidebar-rag-panel { display: none !important; }
+  .sidebar-footer { display: none !important; }
+  .main-content { margin-left: 64px !important; }
+}
+
+@media (max-width: 768px) {
+  .sidebar { display: none !important; }
+  .sidebar-open .sidebar { display: flex !important; }
+  .sidebar-overlay { display: block !important; }
+  .main-content { margin-left: 0 !important; }
+  .hamburger-btn { display: flex !important; }
+}

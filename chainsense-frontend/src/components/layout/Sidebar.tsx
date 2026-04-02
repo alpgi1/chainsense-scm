@@ -27,6 +27,7 @@ export function Sidebar() {
 
   return (
     <div
+      className="sidebar"
       style={{
         width: 240,
         minWidth: 240,
@@ -64,7 +65,7 @@ export function Sidebar() {
           >
             <Zap size={18} color="var(--accent)" />
           </div>
-          <div>
+          <div className="sidebar-label">
             <div
               style={{
                 fontSize: 14,
@@ -87,6 +88,7 @@ export function Sidebar() {
       <nav style={{ padding: '12px 10px', flex: 1 }}>
         <div style={{ marginBottom: 4 }}>
           <span
+            className="sidebar-label"
             style={{
               display: 'block',
               fontSize: 10,
@@ -156,7 +158,7 @@ export function Sidebar() {
                   />
                 )}
                 <Icon size={16} style={{ flexShrink: 0 }} />
-                {label}
+                <span className="sidebar-label">{label}</span>
               </div>
             </NavLink>
           );
@@ -165,6 +167,7 @@ export function Sidebar() {
 
       {/* RAG Mode toggle */}
       <div
+        className="sidebar-rag-panel"
         style={{
           padding: 16,
           borderTop: '1px solid var(--border)',
@@ -256,6 +259,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div
+        className="sidebar-footer"
         style={{
           padding: '12px 20px',
           borderTop: '1px solid var(--border)',

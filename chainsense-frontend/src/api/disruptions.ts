@@ -32,10 +32,15 @@ export const disruptionsApi = {
     return data;
   },
 
-  compare: async (promptA: string, promptB: string): Promise<CompareResponse> => {
+  compare: async (
+    promptA: string,
+    promptB: string,
+    retrievalMode: 'CONTEXT' | 'RAG',
+  ): Promise<CompareResponse> => {
     const { data } = await client.post<CompareResponse>('/disruptions/compare', {
       promptA,
       promptB,
+      retrievalMode,
     });
     return data;
   },

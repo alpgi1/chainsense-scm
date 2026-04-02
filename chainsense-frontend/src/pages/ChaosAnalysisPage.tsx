@@ -1,25 +1,42 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '../components/layout/Header';
 import { ChaosInput } from '../components/chaos/ChaosInput';
 import { PipelineAnimation } from '../components/chaos/PipelineAnimation';
 import { RiskReportCard } from '../components/chaos/RiskReportCard';
 import { ActionPlanCard } from '../components/chaos/ActionPlanCard';
+import { CompareView } from '../components/chaos/CompareView';
 import { useDisruption } from '../hooks/useDisruption';
 import type { RetrievalMode } from '../types/risk.types';
-import { Zap, Database, Brain, Info } from 'lucide-react';
+import { Zap, Database, Brain, Info, GitCompare } from 'lucide-react';
 
 export function ChaosAnalysisPage() {
   const { result, loading, pipelineStatus, analyze, approve, reject, reset } = useDisruption();
+  const [compareMode, setCompareMode] = useState(false);
 
   const handleSubmit = (prompt: string, mode: RetrievalMode) => {
     analyze({ chaosPrompt: prompt, retrievalMode: mode });
   };
+
+  if (compareMode) {
+    return <CompareView onBack={() => setCompareMode(false)} />;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header
         title="Chaos Analysis"
         subtitle="Multi-agent AI pipeline for supply chain disruption response"
+        actions={
+          <button
+            className="btn-secondary"
+            onClick={() => setCompareMode(true)}
+            style={{ gap: 6, fontSize: 13, padding: '8px 14px' }}
+          >
+            <GitCompare size={14} />
+            Compare Mode
+          </button>
+        }
       />
 
       <div style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
@@ -156,8 +173,20 @@ export function ChaosAnalysisPage() {
                     No analysis yet
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 300 }}>
-                    Select a preset scenario or type your own disruption event, then click Run Analysis
-                    to engage the AI agents.
+                    Select a preset scenario or type your own disruption event, then click Run
+                    Analysis to engage the AI agents.
+                  </div>
+                  <div style={{ marginTop: 20, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                    Or use{' '}
+                    <button
+                      className="btn-ghost"
+                      onClick={() => setCompareMode(true)}
+                      style={{ fontSize: 12, padding: '4px 8px', display: 'inline-flex' }}
+                    >
+                      <GitCompare size={12} />
+                      Compare Mode
+                    </button>{' '}
+                    to analyze two scenarios side-by-side.
                   </div>
                 </motion.div>
               )}

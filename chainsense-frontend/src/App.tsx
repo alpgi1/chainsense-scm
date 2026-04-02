@@ -7,22 +7,38 @@ import { HistoryPage } from './pages/HistoryPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { RetrievalModeProvider } from './context/RetrievalModeContext';
+import { ToastProvider } from './context/ToastContext';
+import { CommandPalette } from './components/shared/CommandPalette';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+function AppInner() {
+  const { paletteOpen, setPaletteOpen } = useKeyboardShortcuts();
+
+  return (
+    <>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/chaos" element={<ChaosAnalysisPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/suppliers" element={<SuppliersPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+      {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
+    </>
+  );
+}
 
 function App() {
   return (
     <RetrievalModeProvider>
-      <DemoGate>
-        <Routes>
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/chaos" element={<ChaosAnalysisPage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/suppliers" element={<SuppliersPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </DemoGate>
+      <ToastProvider>
+        <DemoGate>
+          <AppInner />
+        </DemoGate>
+      </ToastProvider>
     </RetrievalModeProvider>
   );
 }
