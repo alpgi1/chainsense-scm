@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { dashboardApi } from '../api/dashboard';
-import { inventoryApi } from '../api/inventory';
-import { disruptionsApi } from '../api/disruptions';
 import type { DashboardStats, Product } from '../types/inventory.types';
 import type { DisruptionResponse } from '../types/risk.types';
+import type { BackendProductSummary, BackendRecentDisruption } from '../types/api.types';
 import { MOCK_DASHBOARD_STATS, MOCK_PRODUCTS, MOCK_DISRUPTIONS } from '../data/mockData';
 
 interface DashboardData {
@@ -13,6 +12,54 @@ interface DashboardData {
   loading: boolean;
   error: string | null;
   refresh: () => void;
+}
+
+function mapProductSummaryToProduct(p: BackendProductSummary): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    sku: p.sku,
+    category: p.category,
+    criticality: p.criticality,
+    quantityOnHand: p.quantityOnHand,
+    reorderPoint: p.reorderPoint,
+    maxCapacity: 10000,
+    dailyConsumptionRate: p.dailyConsumptionRate,
+    unitCost: 0,
+    leadTimeDays: 0,
+    supplierId: '',
+    daysOfStockRemaining: Math.round(p.daysOfStock * 10) / 10,
+  };
+}
+
+function mapRecentDisruption(d: BackendRecentDisruption): DisruptionResponse {
+  return {
+    id: d.id,
+    chaosPrompt: d.chaosPrompt,
+    overallRiskScore: d.overallRiskScore,
+    status: d.status as DisruptionResponse['status'],
+    retrievalMode: d.retrievalMode as DisruptionResponse['retrievalMode'],
+    createdAt: d.createdAt,
+    // Minimal placeholders — only needed for history list display
+    riskReport: {
+      summary: '',
+      overallRiskScore: d.overallRiskScore,
+      disruptionType: 'UNKNOWN',
+      estimatedDurationDays: 0,
+      affectedProducts: [],
+      affectedRoutes: [],
+    },
+    actionPlan: {
+      executiveSummary: '',
+      actions: [],
+      costSummary: {
+        totalAdditionalCostPerDay: 0,
+        estimatedTotalImpact: 0,
+        productsAtRisk: 0,
+        productsWithAlternatives: 0,
+      },
+    },
+  };
 }
 
 export function useDashboard(): DashboardData {
@@ -26,31 +73,35 @@ export function useDashboard(): DashboardData {
     setLoading(true);
     setError(null);
     try {
-      const [statsData, productsData, disruptionsData] = await Promise.allSettled([
-        dashboardApi.getStats(),
-        inventoryApi.getCritical(),
-        disruptionsApi.getAll(),
-      ]);
+      const dashboard = await dashboardApi.get();
 
-      if (statsData.status === 'fulfilled') {
-        setStats(statsData.value);
-      } else {
-        setStats(MOCK_DASHBOARD_STATS);
-      }
+      // Map inventory stats to DashboardStats
+      const mappedStats: DashboardStats = {
+        totalProducts: dashboard.inventoryStats.totalProducts,
+        criticalStockItems: dashboard.inventoryStats.criticalCount,
+        activeDisruptions: dashboard.recentDisruptions.filter(
+          (d) => d.status === 'PENDING' || d.status === 'PROPOSED'
+        ).length,
+        pendingActions: dashboard.recentDisruptions.filter((d) => d.status === 'PENDING').length,
+        avgRiskScore:
+          dashboard.recentDisruptions.length > 0
+            ? Math.round(
+                dashboard.recentDisruptions.reduce((sum, d) => sum + d.overallRiskScore, 0) /
+                  dashboard.recentDisruptions.length
+              )
+            : 0,
+        suppliersAtRisk: dashboard.suppliers.filter((s) => s.reliabilityScore < 0.7).length,
+        totalInventoryValue: 0, // not provided by backend
+        onTimeDeliveryRate: 87.4, // static for demo
+      };
 
-      if (productsData.status === 'fulfilled') {
-        setCriticalProducts(productsData.value);
-      } else {
-        setCriticalProducts(
-          MOCK_PRODUCTS.filter((p) => p.criticality === 'CRITICAL' || p.daysOfStockRemaining! <= 10)
-        );
-      }
-
-      if (disruptionsData.status === 'fulfilled') {
-        setRecentDisruptions(disruptionsData.value.slice(0, 5));
-      } else {
-        setRecentDisruptions(MOCK_DISRUPTIONS);
-      }
+      setStats(mappedStats);
+      setCriticalProducts(
+        dashboard.products
+          .filter((p) => p.belowReorder || p.criticality === 'CRITICAL')
+          .map(mapProductSummaryToProduct)
+      );
+      setRecentDisruptions(dashboard.recentDisruptions.map(mapRecentDisruption));
     } catch {
       setError('Failed to load dashboard data');
       setStats(MOCK_DASHBOARD_STATS);

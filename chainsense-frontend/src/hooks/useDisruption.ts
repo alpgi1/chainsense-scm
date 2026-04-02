@@ -71,25 +71,16 @@ export function useDisruption(): UseDisruptionReturn {
     }
   };
 
+  // No whole-disruption approve/reject endpoint — update local state only
   const approve = async (id: string) => {
-    try {
-      const updated = await disruptionsApi.approve(id);
-      setResult(updated);
-    } catch {
-      if (result && result.id === id) {
-        setResult({ ...result, status: 'APPROVED' });
-      }
+    if (result && result.id === id) {
+      setResult({ ...result, status: 'APPROVED' });
     }
   };
 
   const reject = async (id: string) => {
-    try {
-      const updated = await disruptionsApi.reject(id);
-      setResult(updated);
-    } catch {
-      if (result && result.id === id) {
-        setResult({ ...result, status: 'REJECTED' });
-      }
+    if (result && result.id === id) {
+      setResult({ ...result, status: 'REJECTED' });
     }
   };
 

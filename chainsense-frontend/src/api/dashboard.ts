@@ -1,9 +1,9 @@
 import client from './client';
-import type { DashboardStats } from '../types/inventory.types';
+import type { BackendDashboardResponse } from '../types/api.types';
 
 export const dashboardApi = {
-  getStats: async (): Promise<DashboardStats> => {
-    const { data } = await client.get<DashboardStats>('/dashboard/stats');
+  get: async (): Promise<BackendDashboardResponse> => {
+    const { data } = await client.get<BackendDashboardResponse>('/dashboard');
     return data;
   },
 };
