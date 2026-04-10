@@ -1,182 +1,218 @@
 # ChainSense SCM
 
-A multi-agent AI-powered supply chain risk management platform for EV battery manufacturing lines. Built with Spring Boot 4, Spring AI 2, and React 19.
+![Status](https://img.shields.io/badge/status-Active-brightgreen)
+![Stack](https://img.shields.io/badge/stack-Spring%20Boot%204%20%2B%20React%2019%20%2B%20Spring%20AI-blue)
+![AI](https://img.shields.io/badge/AI-Multi--Agent%20Architecture-purple)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Tests](https://img.shields.io/badge/tests-24%20passing-success)
 
-## Overview
+> Multi-agent AI-powered supply chain risk management platform for EV battery manufacturers. Two autonomous AI agents collaborate to detect disruptions, assess risks, and generate actionable recovery plans — in seconds, not hours.
 
-ChainSense SCM enables operations teams to simulate real-world supply chain disruptions and receive AI-generated risk assessments and action plans in seconds.
+## The Problem
 
-**Core Flow:**
-1. User enters a "Chaos Prompt" (e.g. *"Hamburg port strike affecting all inbound shipments"*)
-2. **Agent 1 — Risk Analyst** queries the supply chain database, identifies affected products and routes, calculates risk scores
-3. **Agent 2 — Strategist** receives the risk report and produces a prioritized action plan with alternative suppliers
-4. All decisions are persisted to an audit log; users can approve or reject individual actions
+Global supply chains are fragile. A port strike in Hamburg, an earthquake in Taiwan, or a canal blockage at Suez can halt an entire EV battery production line within days. Traditional ERP systems react to disruptions *after* they've already caused damage.
 
-**Hybrid Retrieval Architecture:**
-- **Standard Mode (default):** Full supply chain context is serialized and injected into the LLM prompt — deterministic and fast, ideal for demos
-- **Enterprise RAG Mode:** Chaos prompt is embedded and matched against pgvector semantic search — demonstrates enterprise-scale data handling
+**ChainSense SCM is proactive.** Describe a crisis in plain language, and the system autonomously identifies affected products, calculates risk scores, finds alternative suppliers, and produces a one-click action plan.
 
----
+## Live Demo
+
+Access code: `TUM2026`
+
+> Deployment coming soon via DigitalOcean (Student Pack).
+
+## How It Works
+
+```
+User: "Hamburg port workers are on indefinite strike"
+│
+▼
+┌───────────────────────────────┐
+│     Agent 1: Risk Analyst     │
+│  • Queries product database   │
+│  • Identifies affected routes │
+│  • Calculates risk scores     │
+│  • Output: structured report  │
+└───────────────┬───────────────┘
+                │ RiskReport (typed JSON)
+                ▼
+┌───────────────────────────────┐
+│    Agent 2: Strategist        │
+│  • Receives risk report       │
+│  • Finds alternative suppliers│
+│  • Compares costs & timelines │
+│  • Output: prioritized plan   │
+└───────────────┬───────────────┘
+                │ ActionPlan (typed JSON)
+                ▼
+┌───────────────────────────────┐
+│   Dashboard: Review & Decide  │
+│  • Approve / Reject actions   │
+│  • Full audit trail (DB log)  │
+│  • What-If scenario compare   │
+└───────────────────────────────┘
+```
+
+## Hybrid Retrieval Architecture
+
+ChainSense supports two retrieval modes, switchable via a UI toggle:
+
+| Mode | How It Works | When to Use |
+|------|-------------|-------------|
+| **Standard** | Direct SQL → text serialization → LLM context injection | Reliable, fast, deterministic |
+| **Enterprise RAG** | pgvector semantic search → top-K retrieval → LLM context | Demonstrates enterprise-scale vector search |
+
+Both modes produce identical typed output. The **Strategy Pattern** ensures agents are retrieval-mode agnostic — swap the retrieval implementation without touching agent logic.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/dashboard.png" width="400"/><br/><sub>Dashboard — real-time KPIs + critical stock alerts</sub></td>
+    <td align="center"><img src="docs/screenshots/chaos-analysis.png" width="400"/><br/><sub>Chaos Analysis — 3-step AI pipeline visualization</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/risk-report.png" width="400"/><br/><sub>Risk Report — affected products, routes, scores</sub></td>
+    <td align="center"><img src="docs/screenshots/action-plan.png" width="400"/><br/><sub>Action Plan — cost analysis + approve/reject</sub></td>
+  </tr>
+</table>
 
 ## Tech Stack
 
+### Backend
 | Layer | Technology |
-|---|---|
-| Backend | Java 21 + Spring Boot 4.0.5 |
+|-------|-----------|
+| Language | Java 21 |
+| Framework | Spring Boot 4.0.5 |
 | AI Framework | Spring AI 2.0.0-M4 |
-| LLM | Google Gemini 2.0 Flash (via Vertex AI) |
-| Database | PostgreSQL 17 + pgvector |
-| Migrations | Flyway 11 |
-| Frontend | React 19 + TypeScript + Vite + Tailwind CSS 4 |
-| Deployment | Supabase (DB) + Render (API + Frontend) |
+| LLM | Google Gemini 2.5 Flash (via OpenAI-compatible endpoint) |
+| Embeddings | Gemini `gemini-embedding-001` (3072 dimensions) |
+| Database | PostgreSQL 17 + pgvector extension |
+| Migrations | Flyway |
+| Vector Store | Custom PgVectorStore (sequential scan, 3072-dim) |
+| Testing | JUnit 5 + Mockito — 24 tests, all green |
 
----
+### Frontend
+| Layer | Technology |
+|-------|-----------|
+| Framework | React 19 + TypeScript |
+| Build Tool | Vite |
+| Animations | Framer Motion |
+| Icons | Lucide React |
+| Components | Radix UI Primitives |
 
-## Domain
-
-Simulates the supply chain of a Munich-based EV battery manufacturer:
-
-- **15 regions** across Asia, Europe, Americas, and Middle East
-- **30 suppliers** spanning battery cells, BMS electronics, wiring, cooling, structural parts, and more
-- **20 products** covering the full EV battery pack bill of materials
-- **46 supply routes** with real hub ports (Hamburg, Rotterdam, Suez Canal, etc.)
-- Inventory levels intentionally varied — some products are below reorder point to create realistic demo tension
-
----
+### Infrastructure
+| Component | Service |
+|-----------|---------|
+| Database | Supabase PostgreSQL (pgvector enabled) |
+| Hosting | DigitalOcean (Student Pack) |
+| Container | Docker multi-stage build |
 
 ## Getting Started
 
 ### Prerequisites
 
 - Java 21+
-- Docker + Docker Compose
-- Maven (or use the included `./mvnw` wrapper)
+- Node.js 20+
+- Docker Desktop
+- Gemini API key ([get one free](https://aistudio.google.com/apikey))
 
-### 1. Start the database
+### Backend
 
 ```bash
-cd backend
+git clone https://github.com/alpgi1/chainsense-scm.git
+cd chainsense-scm/backend
+
+# Start PostgreSQL with pgvector
 docker compose up -d
+
+# Run the API
+GEMINI_API_KEY=your_key_here ./mvnw spring-boot:run
+
+# Health check
+curl http://localhost:8080/api/v1/health
 ```
 
-This starts:
-- PostgreSQL 17 with pgvector on `localhost:5433`
-- pgAdmin on `http://localhost:5051` (credentials: `admin@chainsense.dev` / `admin`)
-
-### 2. Run database migrations
-
-Flyway runs automatically on application startup and applies:
-- `V1` — base tables (regions, suppliers, products, inventory, supply routes, disruption log, decision actions)
-- `V2` — pgvector extension + embeddings table
-- `V3` — seed data (15 regions, 30 suppliers, 20 products, 46 routes)
-
-### 3. Configure environment variables
+### Frontend
 
 ```bash
-export GOOGLE_CLOUD_PROJECT_ID=your-gcp-project-id
-export GOOGLE_CLOUD_LOCATION=us-central1   # optional, defaults to us-central1
+cd chainsense-scm/chainsense-frontend
+npm install
+npm run dev
+# Open http://localhost:5173 — Access Code: TUM2026
 ```
 
-### 4. Run the backend
+The frontend auto-detects the backend at `http://localhost:8080/api/v1`. If the backend is unavailable, it falls back to realistic mock data so the UI remains fully explorable.
+
+### Run Tests
 
 ```bash
 cd backend
-./mvnw spring-boot:run
+./mvnw test
+# 24 tests across 6 test classes — all green
 ```
 
-API available at `http://localhost:8080`
+## Data Model
 
----
+EV battery production line scenario:
+
+- **30 suppliers** across 15 regions — China, South Korea, Japan, Germany, Poland, USA
+- **20 products** — complete battery pack BOM (cells, BMS chips, separators, wiring, cooling, structural)
+- **Realistic supply routes** — Hamburg, Rotterdam, Suez Canal, trans-Siberian rail, road freight
+- **50+ supply chain embeddings** — ingested into pgvector on first startup for RAG mode
+
+## Architecture Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| AI Framework | Spring AI (not LangChain4j) | Native Spring Boot integration, provider-swappable |
+| Retrieval | Hybrid: Context Injection + RAG | CI for reliability; RAG for enterprise-scale showcase |
+| Agent Communication | Typed DTOs | Structured pipeline without message queue overhead |
+| Frontend | React SPA (not Next.js) | No SSR needed for a dashboard; Vite gives fast DX |
+| Vector DB | pgvector (not Pinecone) | Same PostgreSQL instance — zero extra infrastructure |
+| Embeddings | 3072-dim (no HNSW index) | Exceeds pgvector HNSW 2000-dim limit; sequential scan sufficient for 50 docs |
 
 ## API Reference
 
-### Disruption Analysis
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/disruptions/analyze` | Run multi-agent analysis on a disruption prompt |
+| `POST` | `/api/v1/disruptions/compare` | Parallel What-If comparison of two scenarios |
+| `GET` | `/api/v1/disruptions` | Paginated analysis history |
+| `GET` | `/api/v1/disruptions/{id}` | Single disruption detail |
+| `PATCH` | `/api/v1/disruptions/{id}/actions/{actionId}` | Approve or reject a recommended action |
+| `GET` | `/api/v1/dashboard` | Aggregated KPIs, inventory alerts, recent disruptions |
+| `GET` | `/api/v1/inventory` | Full inventory with stock levels |
+| `GET` | `/api/v1/suppliers` | Supplier registry with reliability scores |
+| `GET` | `/api/v1/health` | Health check |
 
-```http
-POST /api/v1/disruptions/analyze
-Content-Type: application/json
-
-{
-  "prompt": "Hamburg port strike affecting all inbound shipments for the next 3 weeks",
-  "retrievalMode": "CONTEXT"
-}
+**Request example:**
+```bash
+curl -X POST http://localhost:8080/api/v1/disruptions/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Hamburg port strike blocks all container shipments", "retrievalMode": "CONTEXT"}'
 ```
 
-`retrievalMode`: `CONTEXT` (default, standard mode) or `RAG` (enterprise vector search)
+## Roadmap
 
-### Other Endpoints
+- [x] Multi-agent pipeline (Risk Analyst + Strategist)
+- [x] Hybrid retrieval (Standard + Enterprise RAG)
+- [x] What-If scenario comparison (parallel execution)
+- [x] Decision audit trail with approve/reject
+- [x] Keyboard shortcuts + command palette
+- [x] Responsive layout (mobile-ready)
+- [ ] WebSocket real-time disruption feed
+- [ ] Agent memory — learn from past approved decisions
+- [ ] PDF report export
+- [ ] Multi-tenant support
 
-```
-GET    /api/v1/disruptions              # List all disruptions (paginated)
-GET    /api/v1/disruptions/{id}         # Get disruption detail
-PATCH  /api/v1/disruptions/{id}/actions/{actionId}  # Approve or reject an action
+## Author
 
-GET    /api/v1/dashboard                # Aggregated risk overview
-GET    /api/v1/products                 # Product catalog
-GET    /api/v1/suppliers                # Supplier list
-GET    /api/v1/inventory                # Current stock levels
-PATCH  /api/v1/inventory/{id}           # Update inventory
+**Alpgiray Celik**
+B.Sc. Computer Science — Technical University of Munich (TUM)
 
-GET    /api/v1/health
-```
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/alpgiraycelik)
+[![GitHub](https://img.shields.io/badge/GitHub-alpgi1-black)](https://github.com/alpgi1)
 
 ---
 
-## Project Structure
-
-```
-chainsense-scm/
-├── backend/
-│   ├── src/main/java/com/chainsense/scm/
-│   │   ├── ChainSenseApplication.java
-│   │   ├── config/            # CORS, AI clients, vector store
-│   │   ├── controller/        # REST endpoints
-│   │   ├── service/
-│   │   │   ├── agent/         # RiskAnalystAgent, StrategistAgent, AgentOrchestrator
-│   │   │   └── retrieval/     # Strategy pattern: DirectContextRetrieval, RagContextRetrieval
-│   │   ├── model/
-│   │   │   ├── entity/        # JPA entities
-│   │   │   ├── enums/         # Criticality, ActionType, Priority, Status, RetrievalMode
-│   │   │   └── dto/           # Request/response objects
-│   │   ├── repository/        # Spring Data JPA repositories
-│   │   └── exception/         # Global exception handling
-│   └── src/main/resources/
-│       └── db/migration/      # Flyway SQL migrations
-└── frontend/                  # React 19 + TypeScript (Phase 3)
-```
-
----
-
-## Frontend Demo Gate
-
-The frontend uses a simple `sessionStorage`-based access gate.
-Access code: **`TUM2026`**
-
----
-
-## Deployment
-
-### Supabase (Database)
-
-1. Create a Supabase project
-2. Enable the `pgvector` extension in the SQL editor: `CREATE EXTENSION IF NOT EXISTS vector;`
-3. Set the `DATABASE_URL` environment variable on Render
-
-### Render (API)
-
-Set the following environment variables:
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `GOOGLE_CLOUD_PROJECT_ID`
-- `GOOGLE_CLOUD_LOCATION`
-
----
-
-## Why This Is Not "Just Calling an LLM"
-
-- The LLM queries **your database** via structured context — not general world knowledge
-- Two agents form a **typed pipeline**: Agent 1 outputs a `RiskReport` object that Agent 2 consumes
-- Output is **structured actions** (not prose), persisted to PostgreSQL with a full audit trail
-- Agent 2 only receives data for products affected by the disruption — no unnecessary context bloat
-- Retrieval mode is logged per-disruption so you can compare standard vs. RAG outputs
+*Built for the intersection of Enterprise AI and Supply Chain Management.*
