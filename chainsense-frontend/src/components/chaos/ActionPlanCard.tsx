@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { ActionPlan, ActionItem } from '../../types/risk.types';
 import { StatusBadge } from '../shared/StatusBadge';
+import { useToast } from '../../context/ToastContext';
 
 interface ActionPlanCardProps {
   plan: ActionPlan;
@@ -204,6 +205,7 @@ export function ActionPlanCard({
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const { addToast } = useToast();
 
   const isPending = overallStatus === 'PENDING';
   const isApproved = overallStatus === 'APPROVED';
@@ -213,6 +215,9 @@ export function ActionPlanCard({
     setApproving(true);
     try {
       await onApprove(disruptionId);
+      addToast('Action plan approved and queued for execution', 'success');
+    } catch {
+      addToast('Failed to approve plan', 'error');
     } finally {
       setApproving(false);
     }
@@ -222,6 +227,9 @@ export function ActionPlanCard({
     setRejecting(true);
     try {
       await onReject(disruptionId);
+      addToast('Action plan rejected', 'error');
+    } catch {
+      addToast('Failed to reject plan', 'error');
     } finally {
       setRejecting(false);
     }

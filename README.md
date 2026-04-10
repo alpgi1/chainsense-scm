@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Tests](https://img.shields.io/badge/tests-24%20passing-success)
 
-> Multi-agent AI-powered supply chain risk management platform for EV battery manufacturers. Two autonomous AI agents collaborate to detect disruptions, assess risks, and generate actionable recovery plans — in seconds, not hours.
+> Multi-agent AI-powered supply chain risk management platform for EV battery manufacturers. Two autonomous AI agents collaborate to detect disruptions, assess risks, and generate actionable recovery plans - in seconds, not hours.
 
 ## The Problem
 
@@ -24,8 +24,8 @@ Access code: `TUM2026`
 
 ```
 User: "Hamburg port workers are on indefinite strike"
-│
-▼
+                │
+                ▼
 ┌───────────────────────────────┐
 │     Agent 1: Risk Analyst     │
 │  • Queries product database   │
@@ -61,18 +61,18 @@ ChainSense supports two retrieval modes, switchable via a UI toggle:
 | **Standard** | Direct SQL → text serialization → LLM context injection | Reliable, fast, deterministic |
 | **Enterprise RAG** | pgvector semantic search → top-K retrieval → LLM context | Demonstrates enterprise-scale vector search |
 
-Both modes produce identical typed output. The **Strategy Pattern** ensures agents are retrieval-mode agnostic — swap the retrieval implementation without touching agent logic.
+Both modes produce identical typed output. The **Strategy Pattern** ensures agents are retrieval-mode agnostic - swap the retrieval implementation without touching agent logic.
 
 ## Screenshots
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/dashboard.png" width="400"/><br/><sub>Dashboard — real-time KPIs + critical stock alerts</sub></td>
-    <td align="center"><img src="docs/screenshots/chaos-analysis.png" width="400"/><br/><sub>Chaos Analysis — 3-step AI pipeline visualization</sub></td>
+    <td align="center"><img src="docs/screenshots/dashboard.png" width="400"/><br/><sub>Dashboard - real-time KPIs + critical stock alerts</sub></td>
+    <td align="center"><img src="docs/screenshots/chaos-analysis.png" width="400"/><br/><sub>Chaos Analysis - 3-step AI pipeline visualization</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/risk-report.png" width="400"/><br/><sub>Risk Report — affected products, routes, scores</sub></td>
-    <td align="center"><img src="docs/screenshots/action-plan.png" width="400"/><br/><sub>Action Plan — cost analysis + approve/reject</sub></td>
+    <td align="center"><img src="docs/screenshots/risk-report.png" width="400"/><br/><sub>Risk Report - affected products, routes, scores</sub></td>
+     <td align="center"><img src="docs/screenshots/action-plan.png" width="400"/><br/><sub>Action Plan - cost analysis + approve/reject</sub></td>
   </tr>
 </table>
 
@@ -89,7 +89,7 @@ Both modes produce identical typed output. The **Strategy Pattern** ensures agen
 | Database | PostgreSQL 17 + pgvector extension |
 | Migrations | Flyway |
 | Vector Store | Custom PgVectorStore (sequential scan, 3072-dim) |
-| Testing | JUnit 5 + Mockito — 24 tests, all green |
+| Testing | JUnit 5 + Mockito - 24 tests, all green |
 
 ### Frontend
 | Layer | Technology |
@@ -138,7 +138,7 @@ curl http://localhost:8080/api/v1/health
 cd chainsense-scm/chainsense-frontend
 npm install
 npm run dev
-# Open http://localhost:5173 — Access Code: TUM2026
+# Open http://localhost:5173 - Access Code: TUM2026
 ```
 
 The frontend auto-detects the backend at `http://localhost:8080/api/v1`. If the backend is unavailable, it falls back to realistic mock data so the UI remains fully explorable.
@@ -148,17 +148,17 @@ The frontend auto-detects the backend at `http://localhost:8080/api/v1`. If the 
 ```bash
 cd backend
 ./mvnw test
-# 24 tests across 6 test classes — all green
+# 24 tests across 6 test classes - all green
 ```
 
 ## Data Model
 
 EV battery production line scenario:
 
-- **30 suppliers** across 15 regions — China, South Korea, Japan, Germany, Poland, USA
-- **20 products** — complete battery pack BOM (cells, BMS chips, separators, wiring, cooling, structural)
-- **Realistic supply routes** — Hamburg, Rotterdam, Suez Canal, trans-Siberian rail, road freight
-- **50+ supply chain embeddings** — ingested into pgvector on first startup for RAG mode
+- **30 suppliers** across 15 regions - China, South Korea, Japan, Germany, Poland, USA
+- **20 products** - complete battery pack BOM (cells, BMS chips, separators, wiring, cooling, structural)
+- **Realistic supply routes** - Hamburg, Rotterdam, Suez Canal, trans-Siberian rail, road freight
+- **50+ supply chain embeddings** - ingested into pgvector on first startup for RAG mode
 
 ## Architecture Decisions
 
@@ -168,7 +168,7 @@ EV battery production line scenario:
 | Retrieval | Hybrid: Context Injection + RAG | CI for reliability; RAG for enterprise-scale showcase |
 | Agent Communication | Typed DTOs | Structured pipeline without message queue overhead |
 | Frontend | React SPA (not Next.js) | No SSR needed for a dashboard; Vite gives fast DX |
-| Vector DB | pgvector (not Pinecone) | Same PostgreSQL instance — zero extra infrastructure |
+| Vector DB | pgvector (not Pinecone) | Same PostgreSQL instance - zero extra infrastructure |
 | Embeddings | 3072-dim (no HNSW index) | Exceeds pgvector HNSW 2000-dim limit; sequential scan sufficient for 50 docs |
 
 ## API Reference
@@ -201,14 +201,14 @@ curl -X POST http://localhost:8080/api/v1/disruptions/analyze \
 - [x] Keyboard shortcuts + command palette
 - [x] Responsive layout (mobile-ready)
 - [ ] WebSocket real-time disruption feed
-- [ ] Agent memory — learn from past approved decisions
+- [ ] Agent memory - learn from past approved decisions
 - [ ] PDF report export
 - [ ] Multi-tenant support
 
 ## Author
 
 **Alpgiray Celik**
-B.Sc. Computer Science — Technical University of Munich (TUM)
+B.Sc. Computer Science - Technical University of Munich (TUM)
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/alpgiraycelik)
 [![GitHub](https://img.shields.io/badge/GitHub-alpgi1-black)](https://github.com/alpgi1)
