@@ -6,6 +6,7 @@ import { ChaosAnalysisPage } from './pages/ChaosAnalysisPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { SuppliersPage } from './pages/SuppliersPage';
+import { DisruptionDetailPage } from './pages/DisruptionDetailPage';
 import { RetrievalModeProvider } from './context/RetrievalModeContext';
 import { ToastProvider } from './context/ToastContext';
 import { CommandPalette } from './components/shared/CommandPalette';
@@ -23,6 +24,7 @@ function AppInner() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
+          <Route path="/disruptions/:id" element={<DisruptionDetailPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

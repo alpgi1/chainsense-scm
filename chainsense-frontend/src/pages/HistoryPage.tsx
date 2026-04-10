@@ -150,7 +150,7 @@ export function HistoryPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.03 }}
-                onClick={() => navigate('/chaos')}
+                onClick={() => navigate(`/disruptions/${d.id}`)}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '60px 1fr 130px 90px 90px 100px 40px',

@@ -29,6 +29,14 @@ export const disruptionsApi = {
     return data;
   },
 
+  // Update overall disruption status: PATCH /disruptions/{id}/status
+  updateStatus: async (
+    id: string,
+    status: 'APPROVED' | 'REJECTED' | 'RESOLVED'
+  ): Promise<void> => {
+    await client.patch(`/disruptions/${id}/status`, { status });
+  },
+
   // Per-action status update: PATCH /disruptions/{disruptionId}/actions/{actionId}
   updateActionStatus: async (
     disruptionId: string,

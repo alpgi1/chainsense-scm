@@ -9,6 +9,7 @@ import {
   Database,
   Brain,
 } from 'lucide-react';
+import logoSrc from '../../assets/logo.png';
 import * as Switch from '@radix-ui/react-switch';
 import { useRetrievalMode } from '../../hooks/useRetrievalMode';
 
@@ -50,21 +51,17 @@ export function Sidebar() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
+          <img
+            src={logoSrc}
+            alt="ChainSense"
             style={{
               width: 36,
               height: 36,
-              background: 'var(--accent-muted)',
-              border: '1px solid var(--border-accent)',
               borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              objectFit: 'cover',
               flexShrink: 0,
             }}
-          >
-            <Zap size={18} color="var(--accent)" />
-          </div>
+          />
           <div className="sidebar-label">
             <div
               style={{

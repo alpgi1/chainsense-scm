@@ -41,4 +41,15 @@ export const inventoryApi = {
   getCritical: async (): Promise<Product[]> => {
     return inventoryApi.getAlerts();
   },
+
+  // Get raw inventory records (with inventory ID, not product ID)
+  getRaw: async (): Promise<BackendInventory[]> => {
+    const { data } = await client.get<BackendInventory[]>('/inventory');
+    return Array.isArray(data) ? data : [];
+  },
+
+  // Patch inventory record by its own ID (not product ID)
+  patch: async (inventoryId: string, fields: Record<string, unknown>): Promise<void> => {
+    await client.patch(`/inventory/${inventoryId}`, fields);
+  },
 };

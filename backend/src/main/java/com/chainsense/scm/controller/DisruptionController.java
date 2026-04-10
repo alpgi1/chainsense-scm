@@ -82,6 +82,18 @@ public class DisruptionController {
         return ResponseEntity.ok(ApiResponse.ok(DisruptionResponse.from(disruptionLog)));
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<DisruptionResponse>> updateDisruptionStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody ActionStatusRequest request) {
+        log.info("PATCH /api/v1/disruptions/{}/status | status={}", id, request.status());
+        DisruptionLog disruption = disruptionLogRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Disruption not found: " + id));
+        disruption.setStatus(request.status());
+        disruptionLogRepository.save(disruption);
+        return ResponseEntity.ok(ApiResponse.ok(DisruptionResponse.from(disruption)));
+    }
+
     @PatchMapping("/{id}/actions/{actionId}")
     public ResponseEntity<ApiResponse<Void>> updateActionStatus(
             @PathVariable UUID id,

@@ -16,6 +16,8 @@ import {
 import type { ActionPlan, ActionItem } from '../../types/risk.types';
 import { StatusBadge } from '../shared/StatusBadge';
 import { useToast } from '../../context/ToastContext';
+import { ExecutionModal } from './ExecutionModal';
+import { disruptionsApi } from '../../api/disruptions';
 
 interface ActionPlanCardProps {
   plan: ActionPlan;
@@ -205,6 +207,7 @@ export function ActionPlanCard({
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const [showExecution, setShowExecution] = useState(false);
   const { addToast } = useToast();
 
   const isPending = overallStatus === 'PENDING';
@@ -213,14 +216,15 @@ export function ActionPlanCard({
 
   const handleApprove = async () => {
     setApproving(true);
-    try {
-      await onApprove(disruptionId);
-      addToast('Action plan approved and queued for execution', 'success');
-    } catch {
-      addToast('Failed to approve plan', 'error');
-    } finally {
-      setApproving(false);
+    // Best-effort backend update — don't block UI if mock ID or network fails
+    const isRealUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(disruptionId);
+    if (isRealUuid) {
+      await disruptionsApi.updateStatus(disruptionId, 'RESOLVED').catch((err) => {
+        console.error('[handleApprove] updateStatus failed:', err);
+      });
     }
+    await onApprove(disruptionId);
+    setShowExecution(true);
   };
 
   const handleReject = async () => {
@@ -236,6 +240,17 @@ export function ActionPlanCard({
   };
 
   return (
+    <>
+    {showExecution && (
+      <ExecutionModal
+        plan={plan}
+        onComplete={() => {
+          setApproving(false);
+          addToast('Plan executed — supply chain updated', 'success');
+        }}
+        onClose={() => setShowExecution(false)}
+      />
+    )}
     <motion.div
       className="card"
       initial={{ opacity: 0, y: 16 }}
@@ -479,5 +494,6 @@ export function ActionPlanCard({
         )}
       </AnimatePresence>
     </motion.div>
+    </>
   );
 }

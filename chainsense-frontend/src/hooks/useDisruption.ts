@@ -71,10 +71,9 @@ export function useDisruption(): UseDisruptionReturn {
     }
   };
 
-  // No whole-disruption approve/reject endpoint — update local state only
   const approve = async (id: string) => {
     if (result && result.id === id) {
-      setResult({ ...result, status: 'APPROVED' });
+      setResult({ ...result, status: 'RESOLVED' });
     }
   };
 
