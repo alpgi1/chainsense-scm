@@ -46,6 +46,11 @@ export const disruptionsApi = {
     await client.patch(`/disruptions/${disruptionId}/actions/${actionId}`, { status });
   },
 
+  // Execute approved plan — updates inventory, approves DecisionActions, sets RESOLVED
+  execute: async (id: string): Promise<void> => {
+    await client.post(`/disruptions/${id}/execute`);
+  },
+
   compare: async (
     promptA: string,
     promptB: string,

@@ -17,7 +17,6 @@ import type { ActionPlan, ActionItem } from '../../types/risk.types';
 import { StatusBadge } from '../shared/StatusBadge';
 import { useToast } from '../../context/ToastContext';
 import { ExecutionModal } from './ExecutionModal';
-import { disruptionsApi } from '../../api/disruptions';
 
 interface ActionPlanCardProps {
   plan: ActionPlan;
@@ -216,13 +215,6 @@ export function ActionPlanCard({
 
   const handleApprove = async () => {
     setApproving(true);
-    // Best-effort backend update — don't block UI if mock ID or network fails
-    const isRealUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(disruptionId);
-    if (isRealUuid) {
-      await disruptionsApi.updateStatus(disruptionId, 'RESOLVED').catch((err) => {
-        console.error('[handleApprove] updateStatus failed:', err);
-      });
-    }
     await onApprove(disruptionId);
     setShowExecution(true);
   };
@@ -244,6 +236,7 @@ export function ActionPlanCard({
     {showExecution && (
       <ExecutionModal
         plan={plan}
+        disruptionId={disruptionId}
         onComplete={() => {
           setApproving(false);
           addToast('Plan executed — supply chain updated', 'success');

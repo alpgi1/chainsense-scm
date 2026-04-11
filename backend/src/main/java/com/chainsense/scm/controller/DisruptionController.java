@@ -3,6 +3,7 @@ package com.chainsense.scm.controller;
 import com.chainsense.scm.exception.AiProcessingException;
 import com.chainsense.scm.exception.ResourceNotFoundException;
 import com.chainsense.scm.model.dto.*;
+
 import com.chainsense.scm.model.entity.DisruptionLog;
 import com.chainsense.scm.model.enums.RetrievalMode;
 import com.chainsense.scm.repository.DisruptionLogRepository;
@@ -92,6 +93,13 @@ public class DisruptionController {
         disruption.setStatus(request.status());
         disruptionLogRepository.save(disruption);
         return ResponseEntity.ok(ApiResponse.ok(DisruptionResponse.from(disruption)));
+    }
+
+    @PostMapping("/{id}/execute")
+    public ResponseEntity<ApiResponse<ExecutionResult>> execute(@PathVariable UUID id) {
+        log.info("POST /api/v1/disruptions/{}/execute", id);
+        ExecutionResult result = orchestrator.executePlan(id);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     @PatchMapping("/{id}/actions/{actionId}")

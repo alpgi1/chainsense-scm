@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import type { ActionPlan, ActionItem } from '../../types/risk.types';
-import { inventoryApi } from '../../api/inventory';
+import { disruptionsApi } from '../../api/disruptions';
 
 interface ExecutionStep {
   action: ActionItem;
@@ -31,6 +31,7 @@ interface ExecutionSummary {
 
 interface ExecutionModalProps {
   plan: ActionPlan;
+  disruptionId?: string;
   onComplete: () => void;
   onClose: () => void;
 }
@@ -74,7 +75,7 @@ function getActionIcon(type: string) {
 const STEP_DELAY = 900;
 const LINE_DELAY = 280;
 
-export function ExecutionModal({ plan, onComplete, onClose }: ExecutionModalProps) {
+export function ExecutionModal({ plan, disruptionId, onComplete, onClose }: ExecutionModalProps) {
   const [steps, setSteps] = useState<ExecutionStep[]>(
     plan.actions.map((action) => ({ action, status: 'pending', logLines: [] }))
   );
@@ -91,25 +92,28 @@ export function ExecutionModal({ plan, onComplete, onClose }: ExecutionModalProp
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   const runExecution = async () => {
-    // Fetch raw inventory once so we can patch INCREASE_STOCK items
-    let rawInventory = await inventoryApi.getRaw().catch(() => []);
+    // Fire backend execute in parallel with animations — handles all DB changes atomically
+    const isRealUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(disruptionId ?? '');
+    const backendPromise = isRealUuid
+      ? disruptionsApi.execute(disruptionId!).catch((err) => {
+          console.error('[ExecutionModal] execute failed:', err);
+        })
+      : Promise.resolve();
 
     let productsSaved = 0;
     let suppliersActivated = 0;
     let routesRerouted = 0;
     let totalStockAdded = 0;
-    let totalCost = plan.costSummary.estimatedTotalImpact;
+    const totalCost = plan.costSummary.estimatedTotalImpact;
 
     for (let i = 0; i < plan.actions.length; i++) {
       const action = plan.actions[i];
       setCurrentStep(i);
 
-      // Mark running
       setSteps((prev) =>
         prev.map((s, idx) => (idx === i ? { ...s, status: 'running' } : s))
       );
 
-      // Animate log lines one by one
       const messages = ACTION_MESSAGES[action.actionType]?.(action) ?? [
         `Processing ${action.productName}...`,
         'Complete.',
@@ -126,40 +130,21 @@ export function ExecutionModal({ plan, onComplete, onClose }: ExecutionModalProp
 
       await sleep(STEP_DELAY);
 
-      // Real backend call for INCREASE_STOCK
-      let inventoryDelta = 0;
-      if (action.actionType === 'INCREASE_STOCK' && rawInventory.length > 0) {
-        const invRecord = rawInventory.find(
-          (inv) => inv.product.id === action.affectedProductId ||
-                   inv.product.name === action.productName
-        );
-        if (invRecord) {
-          const addAmount = invRecord.dailyConsumptionRate * 30; // 30 days of stock
-          const newQty = invRecord.quantityOnHand + addAmount;
-          await inventoryApi.patch(invRecord.id, { quantityOnHand: newQty }).catch(() => null);
-          inventoryDelta = addAmount;
-          totalStockAdded += addAmount;
-          // Update local raw inventory so next iterations reflect changes
-          rawInventory = rawInventory.map((inv) =>
-            inv.id === invRecord.id ? { ...inv, quantityOnHand: newQty } : inv
-          );
-        }
-      }
-
-      // Update counters
+      // Count effects for summary display
       if (action.actionType === 'SWITCH_SUPPLIER') suppliersActivated++;
       if (action.actionType === 'REROUTE') routesRerouted++;
       if (action.actionType === 'INCREASE_STOCK' || action.actionType === 'SWITCH_SUPPLIER') productsSaved++;
+      if (action.actionType === 'INCREASE_STOCK') totalStockAdded++;
 
-      // Mark done
       setSteps((prev) =>
-        prev.map((s, idx) =>
-          idx === i ? { ...s, status: 'done', inventoryDelta } : s
-        )
+        prev.map((s, idx) => (idx === i ? { ...s, status: 'done' } : s))
       );
 
       setOverallProgress(Math.round(((i + 1) / plan.actions.length) * 100));
     }
+
+    // Wait for backend to finish before showing done state
+    await backendPromise;
 
     setSummary({ productsSaved, suppliersActivated, routesRerouted, totalStockAdded, totalCost });
     setPhase('done');

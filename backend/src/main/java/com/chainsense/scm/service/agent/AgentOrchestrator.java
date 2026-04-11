@@ -4,23 +4,28 @@ import com.chainsense.scm.exception.AiProcessingException;
 import com.chainsense.scm.exception.ResourceNotFoundException;
 import com.chainsense.scm.model.dto.ActionPlan;
 import com.chainsense.scm.model.dto.DisruptionResponse;
+import com.chainsense.scm.model.dto.ExecutionResult;
 import com.chainsense.scm.model.dto.RiskReport;
 import com.chainsense.scm.model.entity.DecisionAction;
 import com.chainsense.scm.model.entity.DisruptionLog;
+import com.chainsense.scm.model.entity.Inventory;
 import com.chainsense.scm.model.enums.ActionType;
 import com.chainsense.scm.model.enums.Priority;
 import com.chainsense.scm.model.enums.RetrievalMode;
 import com.chainsense.scm.model.enums.Status;
 import com.chainsense.scm.repository.DecisionActionRepository;
 import com.chainsense.scm.repository.DisruptionLogRepository;
+import com.chainsense.scm.repository.InventoryRepository;
 import com.chainsense.scm.service.retrieval.ContextRetrievalStrategy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -33,6 +38,7 @@ public class AgentOrchestrator {
     private final StrategistAgent strategist;
     private final DisruptionLogRepository disruptionLogRepository;
     private final DecisionActionRepository decisionActionRepository;
+    private final InventoryRepository inventoryRepository;
     private final ObjectMapper objectMapper;
 
     public AgentOrchestrator(
@@ -41,6 +47,7 @@ public class AgentOrchestrator {
             StrategistAgent strategist,
             DisruptionLogRepository disruptionLogRepository,
             DecisionActionRepository decisionActionRepository,
+            InventoryRepository inventoryRepository,
             ObjectMapper objectMapper) {
         this.strategies = strategyList.stream()
                 .collect(Collectors.toMap(ContextRetrievalStrategy::getMode, s -> s));
@@ -48,6 +55,7 @@ public class AgentOrchestrator {
         this.strategist = strategist;
         this.disruptionLogRepository = disruptionLogRepository;
         this.decisionActionRepository = decisionActionRepository;
+        this.inventoryRepository = inventoryRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -95,6 +103,55 @@ public class AgentOrchestrator {
         action.setStatus(newStatus);
         decisionActionRepository.save(action);
         log.info("Action {} status updated to {} for disruption {}", actionId, newStatus, disruptionId);
+    }
+
+    @Transactional
+    public ExecutionResult executePlan(UUID disruptionId) {
+        DisruptionLog disruption = disruptionLogRepository.findById(disruptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Disruption not found: " + disruptionId));
+
+        int inventoryUpdates = 0;
+
+        // Apply real effects from action plan
+        if (disruption.getActionPlan() != null) {
+            try {
+                ActionPlan actionPlan = objectMapper.readValue(disruption.getActionPlan(), ActionPlan.class);
+                for (ActionPlan.ActionItem item : actionPlan.actions()) {
+                    if ("INCREASE_STOCK".equals(item.actionType()) && item.affectedProductId() != null) {
+                        try {
+                            UUID productId = UUID.fromString(item.affectedProductId());
+                            Optional<Inventory> invOpt = inventoryRepository.findByProductId(productId);
+                            if (invOpt.isPresent()) {
+                                Inventory inv = invOpt.get();
+                                int addAmount = Math.max(inv.getDailyConsumptionRate() * 30, 1);
+                                int newQty = Math.min(inv.getQuantityOnHand() + addAmount, inv.getMaxCapacity());
+                                inv.setQuantityOnHand(newQty);
+                                inv.setLastUpdated(LocalDateTime.now());
+                                inventoryRepository.save(inv);
+                                inventoryUpdates++;
+                            }
+                        } catch (Exception e) {
+                            log.warn("Could not update inventory for product {}: {}", item.affectedProductId(), e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not parse action plan for disruption {}: {}", disruptionId, e.getMessage());
+            }
+        }
+
+        // Approve all DecisionAction records
+        List<DecisionAction> actions = decisionActionRepository.findByDisruptionId(disruptionId);
+        actions.forEach(a -> a.setStatus(Status.APPROVED));
+        decisionActionRepository.saveAll(actions);
+
+        // Resolve the disruption
+        disruption.setStatus(Status.RESOLVED);
+        disruption.setResolvedAt(LocalDateTime.now());
+        disruptionLogRepository.save(disruption);
+
+        log.info("Plan executed for disruption {} | actions={} | inventoryUpdates={}", disruptionId, actions.size(), inventoryUpdates);
+        return new ExecutionResult(disruptionId, actions.size(), inventoryUpdates);
     }
 
     private DisruptionLog persist(String chaosPrompt, RiskReport riskReport, ActionPlan actionPlan, RetrievalMode mode) {
