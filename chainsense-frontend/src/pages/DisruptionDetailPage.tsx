@@ -8,7 +8,6 @@ import { ActionPlanCard } from '../components/chaos/ActionPlanCard';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import { SkeletonCard } from '../components/shared/SkeletonCard';
 import { disruptionsApi } from '../api/disruptions';
-import { useToast } from '../context/ToastContext';
 import type { DisruptionResponse } from '../types/risk.types';
 
 function timeAgo(dateStr: string): string {
@@ -25,7 +24,6 @@ function timeAgo(dateStr: string): string {
 export function DisruptionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const [disruption, setDisruption] = useState<DisruptionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,15 +47,13 @@ export function DisruptionDetailPage() {
 
   const handleApprove = async (disruptionId: string) => {
     if (disruption && disruption.id === disruptionId) {
-      setDisruption({ ...disruption, status: 'APPROVED' });
-      addToast('Action plan approved and queued for execution', 'success');
+      setDisruption({ ...disruption, status: 'RESOLVED' });
     }
   };
 
   const handleReject = async (disruptionId: string) => {
     if (disruption && disruption.id === disruptionId) {
       setDisruption({ ...disruption, status: 'REJECTED' });
-      addToast('Action plan rejected', 'error');
     }
   };
 

@@ -17,6 +17,7 @@ import type { ActionPlan, ActionItem } from '../../types/risk.types';
 import { StatusBadge } from '../shared/StatusBadge';
 import { useToast } from '../../context/ToastContext';
 import { ExecutionModal } from './ExecutionModal';
+import { disruptionsApi } from '../../api/disruptions';
 
 interface ActionPlanCardProps {
   plan: ActionPlan;
@@ -222,6 +223,12 @@ export function ActionPlanCard({
   const handleReject = async () => {
     setRejecting(true);
     try {
+      const isRealUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(disruptionId);
+      if (isRealUuid) {
+        await disruptionsApi.updateStatus(disruptionId, 'REJECTED').catch((err) => {
+          console.error('[handleReject] updateStatus failed:', err);
+        });
+      }
       await onReject(disruptionId);
       addToast('Action plan rejected', 'error');
     } catch {

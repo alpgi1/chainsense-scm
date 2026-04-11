@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
@@ -83,8 +83,11 @@ export function ExecutionModal({ plan, disruptionId, onComplete, onClose }: Exec
   const [phase, setPhase] = useState<'executing' | 'done'>('executing');
   const [summary, setSummary] = useState<ExecutionSummary | null>(null);
   const [overallProgress, setOverallProgress] = useState(0);
+  const hasStarted = useRef(false);
 
   useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
     runExecution();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
